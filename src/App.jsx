@@ -10,6 +10,7 @@ import Login from "./components/Login";
 import Dashboard from "./components/Dashboard";
 import CreateChallan from "./components/CreateChallan";
 import "./App.css";
+import ChallanList from "./components/ChallanList";
 
 /** Blocks a route when nobody is logged in. */
 function RequireAuth({ isLoggedIn, children }) {
@@ -65,6 +66,14 @@ function AppRoutes() {
         element={
           <RequireAuth isLoggedIn={isLoggedIn}>
             <CreateChallan />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/challan/list"
+        element={
+          <RequireAuth isLoggedIn={isLoggedIn}>
+            <ChallanList />
           </RequireAuth>
         }
       />
