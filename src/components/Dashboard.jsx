@@ -995,9 +995,9 @@ function Dashboard({ username, onLogout }) {
                 </button>
                 <button
                   className="option-btn"
-                  onClick={() => setShowSearchChallan(true)}
+                  onClick={() => navigate("/challan/list")}
                 >
-                  Search
+                  See All Challans
                 </button>
               </div>
             </motion.div>
