@@ -501,7 +501,41 @@ function CreateChallan() {
 
               <div className="cc-field">
                 <label htmlFor="receiverName">
-                  Name <span className="cc-req">*</span>
+                  Party Name <span className="cc-req">*</span>
+                </label>
+                <input
+                  id="receiverName"
+                  type="text"
+                  name="receiverName"
+                  className={errors.receiverName ? "cc-invalid" : ""}
+                  value={form.receiverName}
+                  onChange={handleInputChange}
+                  placeholder="Enter party name"
+                />
+                {errors.receiverName && (
+                  <span className="cc-error">{errors.receiverName}</span>
+                )}
+              </div>
+
+              <div className="cc-field">
+                <label htmlFor="receiverEmail">Email</label>
+                <input
+                  id="receiverEmail"
+                  type="email"
+                  name="receiverEmail"
+                  className={errors.receiverEmail ? "cc-invalid" : ""}
+                  value={form.receiverEmail}
+                  onChange={handleInputChange}
+                  placeholder="Enter email address"
+                />
+                {errors.receiverEmail && (
+                  <span className="cc-error">{errors.receiverEmail}</span>
+                )}
+              </div>
+
+              <div className="cc-field">
+                <label htmlFor="receiverName">
+                  Receiver Name <span className="cc-req">*</span>
                 </label>
                 <input
                   id="receiverName"
@@ -518,36 +552,27 @@ function CreateChallan() {
               </div>
 
               <div className="cc-field">
-                <label htmlFor="receiverEmail">Email</label>
-                <input
-                  id="receiverEmail"
-                  type="email"
-                  name="receiverEmail"
-                  className={errors.receiverEmail ? "cc-invalid" : ""}
-                  value={form.receiverEmail}
-                  onChange={handleInputChange}
-                  placeholder="Receiver email"
-                />
-                {errors.receiverEmail && (
-                  <span className="cc-error">{errors.receiverEmail}</span>
-                )}
-              </div>
-
-              <div className="cc-field">
-                <label htmlFor="receiverContact">Contact No.</label>
+                <label htmlFor="receiverContact">Receiver Contact No.</label>
                 <input
                   id="receiverContact"
-                  type="tel"
+                  type="number"
+                  pattern="/^-?\d+\.?\d*$/"
+                  maxLength={11}
                   name="receiverContact"
                   value={form.receiverContact}
                   onChange={handleInputChange}
+                  onInput={(e) => {
+                    if (e.target.value.length > 10) {
+                      e.target.value = e.target.value.slice(0, 10);
+                    }
+                  }}
                   placeholder="Receiver contact"
                 />
               </div>
 
               <div className="cc-field">
                 <label htmlFor="receiverAddress">
-                  Address <span className="cc-req">*</span>
+                  Shipping Address <span className="cc-req">*</span>
                 </label>
                 <textarea
                   id="receiverAddress"
