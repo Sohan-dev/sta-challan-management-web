@@ -9,6 +9,7 @@ import {
   runTransaction,
   serverTimestamp,
   getDoc,
+  updateDoc,
 } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { analytics } from "../firebase/config";
@@ -68,6 +69,7 @@ const buildInitialForm = () => {
     senderContact: company.contact,
     senderAddressType: company.addressKey,
     senderAddress: company.address,
+    partyName: "",
     receiverName: "",
     receiverEmail: "",
     receiverContact: "",
@@ -82,6 +84,9 @@ const buildInitialForm = () => {
 function CreateChallan() {
   const navigate = useNavigate();
   const location = useLocation();
+  const isEdit = Boolean(location.state?.isEdit);
+  const editData = location.state?.editData || null;
+
   const [form, setForm] = useState(buildInitialForm);
   const [errors, setErrors] = useState({});
   const [banner, setBanner] = useState(null); // { type: "success" | "error", text }
@@ -89,7 +94,6 @@ function CreateChallan() {
   const isMounted = useRef(true);
 
   const username = location.state?.username;
-  console.log(username);
 
   useEffect(() => {
     isMounted.current = true;
@@ -98,11 +102,42 @@ function CreateChallan() {
     };
   }, []);
 
-  // Fetch live preview of upcoming Challan Number from Firestore
+  // Pre-fill form if editing an existing challan
   useEffect(() => {
+    if (isEdit && editData) {
+      const company = COMPANY_DATA[editData.transportForm] || COMPANY_DATA.STA;
+      setForm({
+        transportForm: editData.transportForm || "STA",
+        type: editData.type || "Returnable",
+        challanNumber: editData.challanNumber || editData.challanNo || "",
+        currentDate: editData.challanDate || todayISO(),
+        senderName: editData.senderName || company.fullName,
+        senderEmail: editData.senderEmail || company.email,
+        senderContact: editData.senderContact || company.contact,
+        senderAddressType: editData.senderAddressType || company.addressKey,
+        senderAddress: editData.senderAddress || company.address,
+        partyName: editData.partyName || "",
+        receiverName: editData.receiverName || "",
+        receiverEmail: editData.receiverEmail || "",
+        receiverContact: editData.receiverContact || "",
+        receiverAddress: editData.receiverAddress || "",
+        items:
+          editData.items && editData.items.length > 0
+            ? editData.items
+            : [emptyItem()],
+        vehicleNumber: editData.vehicleNumber || "",
+        pickedBy: editData.pickedBy || "",
+        deliveryNote: editData.deliveryNote || "",
+      });
+    }
+  }, [isEdit, editData]);
+
+  // Fetch live preview of upcoming Challan Number from Firestore (Create mode only)
+  useEffect(() => {
+    if (isEdit) return;
+
     const fetchNextChallanPreview = async () => {
       try {
-        // Log custom login event to Firebase Analytics
         if (analytics) {
           logEvent(analytics, "create challan", {
             method: "challan count fetched",
@@ -129,10 +164,11 @@ function CreateChallan() {
     };
 
     fetchNextChallanPreview();
-  }, [form.type, form.transportForm]);
+  }, [form.type, form.transportForm, isEdit]);
 
   // Keep the date fresh if the page is left open across midnight.
   useEffect(() => {
+    if (isEdit) return;
     const tick = () =>
       setForm((prev) =>
         prev.currentDate === todayISO()
@@ -141,7 +177,7 @@ function CreateChallan() {
       );
     const interval = setInterval(tick, 60000);
     return () => clearInterval(interval);
-  }, []);
+  }, [isEdit]);
 
   // Warn before leaving with unsaved data.
   useEffect(() => {
@@ -164,25 +200,61 @@ function CreateChallan() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+
+    setForm((prev) => {
+      let updatedChallanNumber = prev.challanNumber;
+
+      // If updating Type in edit mode, adjust suffix in existing challan number string
+      if (isEdit && name === "type" && prev.challanNumber) {
+        const parts = prev.challanNumber.split("/");
+        if (parts.length === 4) {
+          parts[3] = value === "Returnable" ? "R" : "NR";
+          updatedChallanNumber = parts.join("/");
+        }
+      }
+
+      return {
+        ...prev,
+        [name]: value,
+        challanNumber: updatedChallanNumber,
+      };
+    });
+
     clearError(name);
   };
 
   const handleTransportChange = (transport) => {
-    const company = COMPANY_DATA[transport];
-    setForm((prev) => ({
-      ...prev,
-      transportForm: transport,
-      senderName: company.fullName,
-      senderEmail: company.email,
-      senderContact: company.contact,
-      senderAddressType: company.addressKey,
-      senderAddress: company.address,
-    }));
+    const company = COMPANY_DATA[transport] || COMPANY_DATA.STA;
+
+    setForm((prev) => {
+      let updatedChallanNumber = prev.challanNumber;
+
+      // If updating Transport Form in edit mode, adjust prefix in existing challan number string
+      if (isEdit && prev.challanNumber) {
+        const parts = prev.challanNumber.split("/");
+        if (parts.length === 4) {
+          parts[0] = transport;
+          updatedChallanNumber = parts.join("/");
+        }
+      }
+
+      return {
+        ...prev,
+        transportForm: transport,
+        senderName: company.fullName,
+        senderEmail: company.email,
+        senderContact: company.contact,
+        senderAddressType: company.addressKey,
+        senderAddress: company.address,
+        challanNumber: updatedChallanNumber,
+      };
+    });
+
+    clearError("senderAddress");
   };
 
   const handleSenderAddressType = (addressType) => {
-    const company = COMPANY_DATA[form.transportForm];
+    const company = COMPANY_DATA[form.transportForm] || COMPANY_DATA.STA;
     setForm((prev) => ({
       ...prev,
       senderAddressType: addressType,
@@ -250,33 +322,12 @@ function CreateChallan() {
     setIsSubmitting(true);
 
     try {
-      let finalChallanNo = "";
-
-      // Log custom login event to Firebase Analytics
-      if (analytics) {
-        logEvent(analytics, "create challan", {
-          method: "challan created",
-        });
-      }
-
-      // Atomic transaction: locks the counter, increments it, and writes the document safely
-      await runTransaction(db, async (transaction) => {
-        const counterRef = doc(db, "counters", "challanCounter");
-        const counterDoc = await transaction.get(counterRef);
-
-        let lastCount = 0;
-        if (counterDoc.exists()) {
-          lastCount = counterDoc.data().lastCount || 0;
-        }
-
-        const newCount = lastCount + 1;
-        const paddedCount = String(newCount).padStart(2, "0");
-        const typeSuffix = form.type === "Returnable" ? "R" : "NR";
-
-        finalChallanNo = `${form.transportForm}/${getFormattedDate()}/${paddedCount}/${typeSuffix}`;
-
+      if (isEdit && editData?.id) {
+        // --- UPDATE EXISTING CHALLAN ---
+        const challanRef = doc(db, "challans", editData.id);
         const payload = {
-          challanNo: finalChallanNo,
+          challanNo: form.challanNumber,
+          challanNumber: form.challanNumber,
           transportForm: form.transportForm,
           type: form.type,
           challanDate: form.currentDate,
@@ -293,36 +344,94 @@ function CreateChallan() {
           vehicleNumber: form.vehicleNumber,
           pickedBy: form.pickedBy,
           deliveryNote: form.deliveryNote,
-          createdBy: username || "Unknown",
-          createdAt: serverTimestamp(),
+          updatedBy: username || "Unknown",
+          updatedAt: serverTimestamp(),
         };
 
-        // 1. Create new challan document inside transaction
-        const newChallanRef = doc(collection(db, "challans"));
-        transaction.set(newChallanRef, payload);
-
-        // 2. Increment global counter inside transaction
-        transaction.set(counterRef, { lastCount: newCount }, { merge: true });
-
-        // Update PDF generation payload with actual finalized ID
+        await updateDoc(challanRef, payload);
         await generateChallanPDF(payload);
-      });
 
-      if (!isMounted.current) return;
+        if (!isMounted.current) return;
 
-      alert(`Success! Challan generated with No: ${finalChallanNo}`);
+        alert(`Success! Challan ${form.challanNumber} updated successfully.`);
+        setBanner({
+          type: "success",
+          text: `Challan ${form.challanNumber} updated. PDF downloaded. Returning to dashboard…`,
+        });
 
-      setBanner({
-        type: "success",
-        text: `Challan ${finalChallanNo} saved. PDF downloaded. Returning to dashboard…`,
-      });
+        setTimeout(() => {
+          if (isMounted.current) navigate("/dashboard");
+        }, 2000);
+      } else {
+        // --- CREATE NEW CHALLAN ---
+        let finalChallanNo = "";
 
-      setTimeout(() => {
-        if (isMounted.current) navigate("/dashboard");
-      }, 2000);
+        if (analytics) {
+          logEvent(analytics, "create challan", {
+            method: "challan created",
+          });
+        }
+
+        await runTransaction(db, async (transaction) => {
+          const counterRef = doc(db, "counters", "challanCounter");
+          const counterDoc = await transaction.get(counterRef);
+
+          let lastCount = 0;
+          if (counterDoc.exists()) {
+            lastCount = counterDoc.data().lastCount || 0;
+          }
+
+          const newCount = lastCount + 1;
+          const paddedCount = String(newCount).padStart(2, "0");
+          const typeSuffix = form.type === "Returnable" ? "R" : "NR";
+
+          finalChallanNo = `${form.transportForm}/${getFormattedDate()}/${paddedCount}/${typeSuffix}`;
+
+          const payload = {
+            challanNo: finalChallanNo,
+            challanNumber: finalChallanNo,
+            transportForm: form.transportForm,
+            type: form.type,
+            challanDate: form.currentDate,
+            senderName: form.senderName,
+            senderEmail: form.senderEmail,
+            senderContact: form.senderContact,
+            senderAddress: form.senderAddress,
+            partyName: form.partyName,
+            receiverName: form.receiverName,
+            receiverEmail: form.receiverEmail,
+            receiverContact: form.receiverContact,
+            receiverAddress: form.receiverAddress,
+            items: form.items,
+            vehicleNumber: form.vehicleNumber,
+            pickedBy: form.pickedBy,
+            deliveryNote: form.deliveryNote,
+            createdBy: username || "Unknown",
+            createdAt: serverTimestamp(),
+          };
+
+          const newChallanRef = doc(collection(db, "challans"));
+          transaction.set(newChallanRef, payload);
+          transaction.set(counterRef, { lastCount: newCount }, { merge: true });
+
+          await generateChallanPDF(payload);
+        });
+
+        if (!isMounted.current) return;
+
+        alert(`Success! Challan generated with No: ${finalChallanNo}`);
+        setBanner({
+          type: "success",
+          text: `Challan ${finalChallanNo} saved. PDF downloaded. Returning to dashboard…`,
+        });
+
+        setTimeout(() => {
+          if (isMounted.current) navigate("/dashboard");
+        }, 2000);
+      }
     } catch (error) {
-      console.error("Error creating challan: ", error);
-      alert("Failed to create challan. Check the console.");
+      console.error("Error saving challan: ", error);
+      alert("Failed to save challan. Check the console.");
     } finally {
       if (isMounted.current) setIsSubmitting(false);
     }
@@ -333,11 +442,19 @@ function CreateChallan() {
       form.receiverName ||
       form.receiverAddress ||
       form.items.some((i) => i.description || i.quantity || i.remarks);
-    if (hasData && !window.confirm("Discard this challan and go back?")) return;
+    if (
+      hasData &&
+      !window.confirm(
+        isEdit
+          ? "Discard changes and go back?"
+          : "Discard this challan and go back?",
+      )
+    )
+      return;
     navigate("/dashboard");
   };
 
-  const company = COMPANY_DATA[form.transportForm];
+  const company = COMPANY_DATA[form.transportForm] || COMPANY_DATA.STA;
   const senderReadOnly = form.senderAddressType !== "manual";
 
   return (
@@ -354,7 +471,7 @@ function CreateChallan() {
               ←
             </button>
             <div>
-              <h1>Create Challan</h1>
+              <h1>{isEdit ? "Edit Challan" : "Create Challan"}</h1>
               <span className="cc-subtitle">
                 {company.fullName} · {form.challanNumber || "Loading..."}
               </span>
@@ -424,7 +541,8 @@ function CreateChallan() {
                   type="date"
                   name="currentDate"
                   value={form.currentDate}
-                  readOnly
+                  onChange={handleInputChange}
+                  readOnly={!isEdit}
                 />
               </div>
             </div>
@@ -501,9 +619,7 @@ function CreateChallan() {
               <h2 className="cc-section-title">Receiver Information</h2>
 
               <div className="cc-field">
-                <label htmlFor="partyName">
-                  Party Name <span className="cc-req">*</span>
-                </label>
+                <label htmlFor="partyName">Party Name</label>
                 <input
                   id="partyName"
                   type="text"
@@ -742,7 +858,11 @@ function CreateChallan() {
               className="cc-btn cc-btn-primary"
               disabled={isSubmitting}
             >
-              {isSubmitting ? "Submitting…" : "Submit & Download PDF"}
+              {isSubmitting
+                ? "Submitting…"
+                : isEdit
+                  ? "Update & Download PDF"
+                  : "Submit & Download PDF"}
             </button>
           </div>
         </form>

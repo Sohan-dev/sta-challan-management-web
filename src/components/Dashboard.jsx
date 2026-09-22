@@ -126,6 +126,18 @@ function Dashboard({ username, onLogout }) {
     deliveryNote: "",
   });
 
+  // Handle Action: Edit Challan (Navigates to Create Challan Page with Prefill Data)
+  const handleEditChallanFromList = (challan) => {
+    console.log("Editing Challan:", challan);
+    navigate("/challan/new", {
+      state: {
+        username: username,
+        isEdit: true,
+        editData: challan,
+      },
+    });
+  };
+
   // Initialize challan data on component mount
   useEffect(() => {
     generateChallanNumber("Returnable");
@@ -1054,6 +1066,7 @@ function Dashboard({ username, onLogout }) {
                       <th>Sender Name</th>
                       <th>Receiver Name</th>
                       <th>Created Date &amp; Time</th>
+                      <th style={{ textAlign: "center" }}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1086,11 +1099,41 @@ function Dashboard({ username, onLogout }) {
                               ? challan.createdAt.toDate().toLocaleString()
                               : challan.challanDate || "N/A"}
                           </td>
+                          <td style={{ textAlign: "center" }}>
+                            <button
+                              title="Edit Challan"
+                              style={{
+                                background: "#f3f4f6",
+                                border: "1px solid #e5e7eb",
+                                borderRadius: "6px",
+                                padding: "6px 10px",
+                                cursor: "pointer",
+                                fontSize: "14px",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                transition: "all 0.2s ease-in-out",
+                              }}
+                              onMouseOver={(e) => {
+                                e.currentTarget.style.backgroundColor =
+                                  "#e0e7ff";
+                                e.currentTarget.style.borderColor = "#c7d2fe";
+                              }}
+                              onMouseOut={(e) => {
+                                e.currentTarget.style.backgroundColor =
+                                  "#f3f4f6";
+                                e.currentTarget.style.borderColor = "#e5e7eb";
+                              }}
+                              onClick={() => handleEditChallanFromList(challan)}
+                            >
+                              ✏️
+                            </button>
+                          </td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan="6" className="no-records">
+                        <td colSpan="7" className="no-records">
                           No recent challans found.
                         </td>
                       </tr>
@@ -1885,32 +1928,6 @@ function Dashboard({ username, onLogout }) {
       {showNewQuotation && (
         <QuotationForm onClose={() => setShowNewQuotation(false)} />
       )}
-
-      {/* Search Quotation Modal 
-      {showSearchQuotation && (
-        <div
-          className="modal-overlay"
-          onClick={() => setShowSearchQuotation(false)}
-        >
-          <div
-            className="modal-content modal-large"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="modal-header">
-              <h2>Search Quotation</h2>
-              <button
-                className="close-btn"
-                onClick={() => setShowSearchQuotation(false)}
-              >
-                ✕
-              </button>
-            </div>
-            <div className="modal-body">
-              <p>Search quotation feature coming soon...</p>
-            </div>
-          </div>
-        </div>
-      )}*/}
     </div>
   );
 }
