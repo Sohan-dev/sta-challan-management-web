@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
+import { useNavigate } from "react-router-dom";
 import { db } from "../firebase/config"; // Adjust import path if needed
 import "../styles/ChallanList.css";
 
 const ITEMS_PER_PAGE = 10;
 
 function ChallanList() {
+  const navigate = useNavigate();
   const [challans, setChallans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -35,6 +37,16 @@ function ChallanList() {
 
     return () => unsubscribe();
   }, []);
+
+  // Handle Edit Redirection to createChallan page with pre-filled state
+  const handleEdit = (challanItem) => {
+    navigate("/challan/new", {
+      state: {
+        isEdit: true,
+        editData: challanItem,
+      },
+    });
+  };
 
   // Format Firestore Timestamp or ISO Date string
   const formatDate = (timestamp) => {
@@ -92,7 +104,6 @@ function ChallanList() {
   // Filtered dataset memoized
   const filteredChallans = useMemo(() => {
     return challans.filter((challan) => {
-      // Fix: priority given to challanNo, then fallbacks
       const cNo = (
         challan.challanNo ||
         challan.challanNumber ||
@@ -233,6 +244,7 @@ function ChallanList() {
                       <th>Receiver Name</th>
                       <th>Created Date &amp; Time</th>
                       <th>Created By</th>
+                      <th style={{ textAlign: "center" }}>Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -268,6 +280,47 @@ function ChallanList() {
                           </td>
                           <td className="cl-col-user">
                             {item.createdBy || "System"}
+                          </td>
+                          <td style={{ textAlign: "center" }}>
+                            <button
+                              type="button"
+                              title="Edit Challan"
+                              style={{
+                                border: "none",
+                                background: "transparent",
+                                cursor: "pointer",
+                                padding: "6px",
+                                borderRadius: "6px",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                color: "#2563eb",
+                                transition: "background-color 0.2s, color 0.2s",
+                              }}
+                              onMouseOver={(e) => {
+                                e.currentTarget.style.backgroundColor =
+                                  "#eff6ff";
+                              }}
+                              onMouseOut={(e) => {
+                                e.currentTarget.style.backgroundColor =
+                                  "transparent";
+                              }}
+                              onClick={() => handleEdit(item)}
+                            >
+                              <svg
+                                width="18"
+                                height="18"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                              </svg>
+                            </button>
                           </td>
                         </tr>
                       );
