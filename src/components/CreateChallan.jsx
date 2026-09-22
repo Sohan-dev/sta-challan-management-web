@@ -284,6 +284,7 @@ function CreateChallan() {
           senderEmail: form.senderEmail,
           senderContact: form.senderContact,
           senderAddress: form.senderAddress,
+          partyName: form.partyName,
           receiverName: form.receiverName,
           receiverEmail: form.receiverEmail,
           receiverContact: form.receiverContact,
@@ -500,20 +501,20 @@ function CreateChallan() {
               <h2 className="cc-section-title">Receiver Information</h2>
 
               <div className="cc-field">
-                <label htmlFor="receiverName">
+                <label htmlFor="partyName">
                   Party Name <span className="cc-req">*</span>
                 </label>
                 <input
-                  id="receiverName"
+                  id="partyName"
                   type="text"
-                  name="receiverName"
-                  className={errors.receiverName ? "cc-invalid" : ""}
-                  value={form.receiverName}
+                  name="partyName"
+                  className={errors.partyName ? "cc-invalid" : ""}
+                  value={form.partyName}
                   onChange={handleInputChange}
                   placeholder="Enter party name"
                 />
-                {errors.receiverName && (
-                  <span className="cc-error">{errors.receiverName}</span>
+                {errors.partyName && (
+                  <span className="cc-error">{errors.partyName}</span>
                 )}
               </div>
 
@@ -557,7 +558,6 @@ function CreateChallan() {
                   id="receiverContact"
                   type="number"
                   pattern="/^-?\d+\.?\d*$/"
-                  maxLength={11}
                   name="receiverContact"
                   value={form.receiverContact}
                   onChange={handleInputChange}
@@ -581,7 +581,7 @@ function CreateChallan() {
                   value={form.receiverAddress}
                   onChange={handleInputChange}
                   rows={3}
-                  placeholder="Receiver address"
+                  placeholder="Enter shipping address"
                 />
                 {errors.receiverAddress && (
                   <span className="cc-error">{errors.receiverAddress}</span>

@@ -1886,7 +1886,7 @@ function Dashboard({ username, onLogout }) {
         <QuotationForm onClose={() => setShowNewQuotation(false)} />
       )}
 
-      {/* Search Quotation Modal */}
+      {/* Search Quotation Modal 
       {showSearchQuotation && (
         <div
           className="modal-overlay"
@@ -1910,7 +1910,7 @@ function Dashboard({ username, onLogout }) {
             </div>
           </div>
         </div>
-      )}
+      )}*/}
     </div>
   );
 }
