@@ -70,6 +70,14 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/challan/edit/:id"
+        element={
+          <RequireAuth isLoggedIn={isLoggedIn}>
+            <CreateChallan />
+          </RequireAuth>
+        }
+      />
+      <Route
         path="/challan/list"
         element={
           <RequireAuth isLoggedIn={isLoggedIn}>

@@ -1,7 +1,16 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
+import { useNavigate, useLocation } from "react-router-dom";
+import {
+  collection,
+  query,
+  orderBy,
+  onSnapshot,
+  doc,
+  deleteDoc,
+} from "firebase/firestore";
 import { db } from "../firebase/config"; // Adjust import path if needed
 import "../styles/ChallanList.css";
+import "../styles/ChallanListActions.css";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -12,6 +21,14 @@ function ChallanList() {
   const [selectedType, setSelectedType] = useState("ALL");
   const [selectedDate, setSelectedDate] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+
+  // --- Edit / delete / back additions ---
+  const navigate = useNavigate();
+  const location = useLocation();
+  const username = location.state?.username;
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   useEffect(() => {
     const challansRef = collection(db, "challans");
@@ -132,22 +149,93 @@ function ChallanList() {
     return filteredChallans.slice(startIndex, startIndex + ITEMS_PER_PAGE);
   }, [filteredChallans, currentPage]);
 
+  // If the last row on the last page is deleted, step back to a valid page
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
+
+  const closeDeleteModal = () => {
+    setDeleteTarget(null);
+    setDeleteError("");
+  };
+
+  // Close the delete dialog with Escape (unless a delete is in flight)
+  useEffect(() => {
+    if (!deleteTarget) return undefined;
+    const onKeyDown = (e) => {
+      if (e.key === "Escape" && !isDeleting) closeDeleteModal();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [deleteTarget, isDeleting]);
+
+  // Go back to wherever the user came from; fall back to the dashboard
+  const handleBack = () => {
+    if (window.history.state && window.history.state.idx > 0) navigate(-1);
+    else navigate("/dashboard");
+  };
+
+  // Opens the Create Challan page in edit mode (it loads the doc by id)
+  const handleEdit = (item) => {
+    navigate(`/challan/edit/${item.id}`, { state: { username } });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    setDeleteError("");
+    try {
+      await deleteDoc(doc(db, "challans", deleteTarget.id));
+      // onSnapshot above removes the row from the list automatically
+      setDeleteTarget(null);
+    } catch (error) {
+      console.error("Error deleting challan:", error);
+      setDeleteError(
+        "Could not delete this challan. Check your permissions and try again.",
+      );
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <div className="cl-page">
-      <div className="cl-container">
-        {/* Header */}
-        <div className="cl-header">
-          <div>
-            <h1 className="cl-title">All Challans</h1>
-            <p className="cl-subtitle">
-              Manage and track generated challans in real time
-            </p>
+      {/* Separate white header: back button, title, total */}
+      <header className="cl-topbar">
+        <div className="cl-topbar-inner">
+          <div className="cl-topbar-left">
+            <button
+              type="button"
+              className="cl-back-btn"
+              onClick={handleBack}
+              aria-label="Go back"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                width="18"
+                height="18"
+                aria-hidden="true"
+              >
+                <path
+                  fill="currentColor"
+                  d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"
+                />
+              </svg>
+            </button>
+            <div className="cl-topbar-text">
+              <h1 className="cl-title">All Challans</h1>
+              <p className="cl-subtitle">
+                Manage and track generated challans in real time
+              </p>
+            </div>
           </div>
           <span className="cl-total-badge">
             Total: <strong>{filteredChallans.length}</strong>
           </span>
         </div>
+      </header>
 
+      <div className="cl-container">
         {/* Filter Controls */}
         <div className="cl-controls-card">
           <div className="cl-search-wrapper">
@@ -233,6 +321,7 @@ function ChallanList() {
                       <th>Receiver Name</th>
                       <th>Created Date &amp; Time</th>
                       <th>Created By</th>
+                      <th>Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -268,6 +357,48 @@ function ChallanList() {
                           </td>
                           <td className="cl-col-user">
                             {item.createdBy || "System"}
+                          </td>
+                          <td className="cl-col-actions">
+                            <div className="cl-actions">
+                              <button
+                                type="button"
+                                className="cl-action-btn cl-edit-btn"
+                                title="Edit challan"
+                                aria-label={`Edit challan ${displayChallanNo}`}
+                                onClick={() => handleEdit(item)}
+                              >
+                                <svg
+                                  viewBox="0 0 24 24"
+                                  width="16"
+                                  height="16"
+                                  aria-hidden="true"
+                                >
+                                  <path
+                                    fill="currentColor"
+                                    d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"
+                                  />
+                                </svg>
+                              </button>
+                              <button
+                                type="button"
+                                className="cl-action-btn cl-delete-btn"
+                                title="Delete challan"
+                                aria-label={`Delete challan ${displayChallanNo}`}
+                                onClick={() => setDeleteTarget(item)}
+                              >
+                                <svg
+                                  viewBox="0 0 24 24"
+                                  width="16"
+                                  height="16"
+                                  aria-hidden="true"
+                                >
+                                  <path
+                                    fill="currentColor"
+                                    d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"
+                                  />
+                                </svg>
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -331,6 +462,64 @@ function ChallanList() {
           )}
         </div>
       </div>
+
+      {/* Delete confirmation */}
+      {deleteTarget && (
+        <div
+          className="cl-modal-overlay"
+          role="presentation"
+          onClick={() => {
+            if (!isDeleting) closeDeleteModal();
+          }}
+        >
+          <div
+            className="cl-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="cl-delete-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="cl-delete-title" className="cl-modal-title">
+              Delete this challan?
+            </h2>
+            <p className="cl-modal-text">
+              You are about to permanently delete{" "}
+              <strong>
+                {deleteTarget.challanNo ||
+                  deleteTarget.challanNumber ||
+                  deleteTarget.id}
+              </strong>
+              {deleteTarget.receiverName
+                ? ` issued to ${deleteTarget.receiverName}`
+                : ""}
+              . This cannot be undone.
+            </p>
+            {deleteError && (
+              <p className="cl-modal-error" role="alert">
+                {deleteError}
+              </p>
+            )}
+            <div className="cl-modal-actions">
+              <button
+                type="button"
+                className="cl-modal-btn cl-modal-cancel"
+                onClick={closeDeleteModal}
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="cl-modal-btn cl-modal-confirm"
+                onClick={handleConfirmDelete}
+                disabled={isDeleting}
+              >
+                {isDeleting ? "Deleting…" : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { generateChallanPDF } from "../utils/challanPdf";
 import "../styles/CreateChallan.css";
@@ -9,6 +9,7 @@ import {
   runTransaction,
   serverTimestamp,
   getDoc,
+  updateDoc,
 } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { analytics } from "../firebase/config";
@@ -82,14 +83,20 @@ const buildInitialForm = () => {
 function CreateChallan() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { id: editId } = useParams(); // present on /challan/edit/:id
+  const isEditMode = Boolean(editId);
   const [form, setForm] = useState(buildInitialForm);
+  const [isLoadingChallan, setIsLoadingChallan] = useState(isEditMode);
+  const [loadError, setLoadError] = useState("");
+  const initialSnapshot = useRef(""); // form as loaded, to detect unsaved edits
+  // Number / type / transport form as loaded, so the number can follow edits
+  const [originalChallan, setOriginalChallan] = useState(null);
   const [errors, setErrors] = useState({});
   const [banner, setBanner] = useState(null); // { type: "success" | "error", text }
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isMounted = useRef(true);
 
   const username = location.state?.username;
-  console.log(username);
 
   useEffect(() => {
     isMounted.current = true;
@@ -98,8 +105,89 @@ function CreateChallan() {
     };
   }, []);
 
+  // Edit mode: load the existing challan and prefill the form
+  useEffect(() => {
+    if (!isEditMode) return undefined;
+    let cancelled = false;
+
+    const loadChallan = async () => {
+      setIsLoadingChallan(true);
+      setLoadError("");
+      try {
+        const snap = await getDoc(doc(db, "challans", editId));
+        if (cancelled) return;
+
+        if (!snap.exists()) {
+          setLoadError(
+            "This challan no longer exists. It may have been deleted.",
+          );
+          return;
+        }
+
+        const data = snap.data();
+        const transportForm = COMPANY_DATA[data.transportForm]
+          ? data.transportForm
+          : "STA";
+        const company = COMPANY_DATA[transportForm];
+        const senderAddress = data.senderAddress ?? company.address;
+
+        const loaded = {
+          transportForm,
+          type: data.type || "Returnable",
+          challanNumber: data.challanNo || data.challanNumber || "",
+          currentDate: data.challanDate || todayISO(),
+          senderName: data.senderName ?? company.fullName,
+          senderEmail: data.senderEmail ?? company.email,
+          senderContact: data.senderContact ?? company.contact,
+          senderAddressType:
+            senderAddress === company.address ? company.addressKey : "manual",
+          senderAddress,
+          receiverName: data.receiverName ?? "",
+          receiverEmail: data.receiverEmail ?? "",
+          receiverContact: data.receiverContact ?? "",
+          receiverAddress: data.receiverAddress ?? "",
+          items:
+            Array.isArray(data.items) && data.items.length > 0
+              ? data.items.map((item) => ({
+                  description: item.description ?? "",
+                  quantity: item.quantity ?? "",
+                  remarks: item.remarks ?? "",
+                }))
+              : [emptyItem()],
+          vehicleNumber: data.vehicleNumber ?? "",
+          pickedBy: data.pickedBy ?? "",
+          deliveryNote: data.deliveryNote ?? "",
+        };
+
+        initialSnapshot.current = JSON.stringify(loaded);
+        setOriginalChallan({
+          number: loaded.challanNumber,
+          type: loaded.type,
+          transportForm: loaded.transportForm,
+        });
+        setForm(loaded);
+      } catch (err) {
+        console.error("Error loading challan: ", err);
+        if (!cancelled)
+          setLoadError(
+            "Failed to load this challan. Check your connection and try again.",
+          );
+      } finally {
+        if (!cancelled) setIsLoadingChallan(false);
+      }
+    };
+
+    loadChallan();
+    return () => {
+      cancelled = true;
+    };
+  }, [isEditMode, editId]);
+
   // Fetch live preview of upcoming Challan Number from Firestore
   useEffect(() => {
+    // Edit mode keeps the challan's existing number
+    if (isEditMode) return;
+
     const fetchNextChallanPreview = async () => {
       try {
         // Log custom login event to Firebase Analytics
@@ -129,10 +217,12 @@ function CreateChallan() {
     };
 
     fetchNextChallanPreview();
-  }, [form.type, form.transportForm]);
+  }, [form.type, form.transportForm, isEditMode]);
 
   // Keep the date fresh if the page is left open across midnight.
   useEffect(() => {
+    // Edit mode keeps the challan's original date
+    if (isEditMode) return undefined;
     const tick = () =>
       setForm((prev) =>
         prev.currentDate === todayISO()
@@ -141,18 +231,45 @@ function CreateChallan() {
       );
     const interval = setInterval(tick, 60000);
     return () => clearInterval(interval);
-  }, []);
+  }, [isEditMode]);
+
+  // Edit mode: the number keeps its date and sequence. Only the transport
+  // prefix and the R / NR suffix follow the Transport Form and Type dropdowns.
+  const getEditedChallanNumber = () => {
+    if (!originalChallan) return form.challanNumber;
+    const { number, type, transportForm } = originalChallan;
+    if (form.type === type && form.transportForm === transportForm)
+      return number;
+
+    const parts = number.split("/");
+    if (parts.length !== 4) return number;
+    if (form.transportForm !== transportForm && parts[0] === transportForm)
+      parts[0] = form.transportForm;
+    if (form.type !== type && (parts[3] === "R" || parts[3] === "NR"))
+      parts[3] = form.type === "Returnable" ? "R" : "NR";
+    return parts.join("/");
+  };
+  const currentChallanNumber = isEditMode
+    ? getEditedChallanNumber()
+    : form.challanNumber;
+
+  // True when the loaded challan has been modified (edit mode only)
+  const isDirty =
+    isEditMode &&
+    initialSnapshot.current !== "" &&
+    JSON.stringify(form) !== initialSnapshot.current;
 
   // Warn before leaving with unsaved data.
   useEffect(() => {
     const handler = (e) => {
       if (isSubmitting) return;
+      if (isEditMode && !isDirty) return;
       e.preventDefault();
       e.returnValue = "";
     };
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
-  }, [isSubmitting]);
+  }, [isSubmitting, isEditMode, isDirty]);
 
   const clearError = (field) =>
     setErrors((prev) => {
@@ -243,9 +360,108 @@ function CreateChallan() {
     return Object.keys(next).length === 0;
   };
 
+  // Go back to the page the user came from (the list); fall back to dashboard
+  const goBack = () => {
+    if (window.history.state && window.history.state.idx > 0) navigate(-1);
+    else navigate("/dashboard");
+  };
+
+  // Edit mode: update the existing document. The challan number, type,
+  // transport form, date and createdBy/createdAt are never changed.
+  const handleUpdate = async () => {
+    setIsSubmitting(true);
+    setBanner(null);
+
+    try {
+      if (analytics) {
+        logEvent(analytics, "update_challan", {
+          method: "challan updated",
+        });
+      }
+
+      await updateDoc(doc(db, "challans", editId), {
+        challanNo: currentChallanNumber,
+        transportForm: form.transportForm,
+        type: form.type,
+        senderName: form.senderName,
+        senderEmail: form.senderEmail,
+        senderContact: form.senderContact,
+        senderAddress: form.senderAddress,
+        receiverName: form.receiverName,
+        receiverEmail: form.receiverEmail,
+        receiverContact: form.receiverContact,
+        receiverAddress: form.receiverAddress,
+        items: form.items,
+        vehicleNumber: form.vehicleNumber,
+        pickedBy: form.pickedBy,
+        deliveryNote: form.deliveryNote,
+        updatedBy: username || "Unknown",
+        updatedAt: serverTimestamp(),
+      });
+
+      // The save has succeeded; a PDF problem should not look like a failed save
+      let pdfOk = true;
+      try {
+        await generateChallanPDF({
+          challanNo: currentChallanNumber,
+          transportForm: form.transportForm,
+          type: form.type,
+          challanDate: form.currentDate,
+          senderName: form.senderName,
+          senderEmail: form.senderEmail,
+          senderContact: form.senderContact,
+          senderAddress: form.senderAddress,
+          receiverName: form.receiverName,
+          receiverEmail: form.receiverEmail,
+          receiverContact: form.receiverContact,
+          receiverAddress: form.receiverAddress,
+          items: form.items,
+          vehicleNumber: form.vehicleNumber,
+          pickedBy: form.pickedBy,
+          deliveryNote: form.deliveryNote,
+        });
+      } catch (pdfError) {
+        console.error("Error generating PDF: ", pdfError);
+        pdfOk = false;
+      }
+
+      if (!isMounted.current) return;
+
+      // Mark as saved so the unsaved-changes guard stays quiet
+      initialSnapshot.current = JSON.stringify(form);
+
+      setBanner({
+        type: "success",
+        text: pdfOk
+          ? `Challan ${currentChallanNumber} updated. PDF downloaded. Returning…`
+          : `Challan ${currentChallanNumber} updated, but the PDF could not be generated. Returning…`,
+      });
+
+      setTimeout(() => {
+        if (isMounted.current) goBack();
+      }, 1500);
+    } catch (error) {
+      console.error("Error updating challan: ", error);
+      if (isMounted.current) {
+        setBanner({
+          type: "error",
+          text: "Failed to update challan. Check your connection and permissions, then try again.",
+        });
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    } finally {
+      if (isMounted.current) setIsSubmitting(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
+
+    if (isEditMode) {
+      await handleUpdate();
+      return;
+    }
 
     setIsSubmitting(true);
 
@@ -328,6 +544,12 @@ function CreateChallan() {
   };
 
   const handleCancel = () => {
+    if (isEditMode) {
+      if (isDirty && !window.confirm("Discard your changes and go back?"))
+        return;
+      goBack();
+      return;
+    }
     const hasData =
       form.receiverName ||
       form.receiverAddress ||
@@ -338,6 +560,50 @@ function CreateChallan() {
 
   const company = COMPANY_DATA[form.transportForm];
   const senderReadOnly = form.senderAddressType !== "manual";
+
+  if (isEditMode && (isLoadingChallan || loadError)) {
+    return (
+      <div className="cc-page">
+        <header className="cc-topbar">
+          <div className="cc-topbar-inner">
+            <div className="cc-title-group">
+              <button
+                type="button"
+                className="cc-back"
+                onClick={goBack}
+                aria-label="Go back"
+              >
+                ←
+              </button>
+              <div>
+                <h1>Edit Challan</h1>
+              </div>
+            </div>
+          </div>
+        </header>
+        <main className="cc-container">
+          <section className="cc-card">
+            {loadError ? (
+              <>
+                <div className="cc-banner cc-banner-error" role="alert">
+                  {loadError}
+                </div>
+                <button
+                  type="button"
+                  className="cc-btn cc-btn-ghost"
+                  onClick={goBack}
+                >
+                  Go back
+                </button>
+              </>
+            ) : (
+              <p>Loading challan…</p>
+            )}
+          </section>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="cc-page">
@@ -353,9 +619,9 @@ function CreateChallan() {
               ←
             </button>
             <div>
-              <h1>Create Challan</h1>
+              <h1>{isEditMode ? "Edit Challan" : "Create Challan"}</h1>
               <span className="cc-subtitle">
-                {company.fullName} · {form.challanNumber || "Loading..."}
+                {company.fullName} · {currentChallanNumber || "Loading..."}
               </span>
             </div>
           </div>
@@ -410,7 +676,7 @@ function CreateChallan() {
                   id="challanNumber"
                   type="text"
                   name="challanNumber"
-                  value={form.challanNumber}
+                  value={currentChallanNumber}
                   readOnly
                   placeholder="Auto-generated"
                 />
@@ -742,7 +1008,13 @@ function CreateChallan() {
               className="cc-btn cc-btn-primary"
               disabled={isSubmitting}
             >
-              {isSubmitting ? "Submitting…" : "Submit & Download PDF"}
+              {isSubmitting
+                ? isEditMode
+                  ? "Updating…"
+                  : "Submitting…"
+                : isEditMode
+                  ? "Update & Download PDF"
+                  : "Submit & Download PDF"}
             </button>
           </div>
         </form>
