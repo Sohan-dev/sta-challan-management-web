@@ -15,7 +15,6 @@ import "../styles/ChallanListActions.css";
 const ITEMS_PER_PAGE = 10;
 
 function ChallanList() {
-  const navigate = useNavigate();
   const [challans, setChallans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -53,16 +52,6 @@ function ChallanList() {
 
     return () => unsubscribe();
   }, []);
-
-  // Handle Edit Redirection to createChallan page with pre-filled state
-  const handleEdit = (challanItem) => {
-    navigate("/challan/new", {
-      state: {
-        isEdit: true,
-        editData: challanItem,
-      },
-    });
-  };
 
   // Format Firestore Timestamp or ISO Date string
   const formatDate = (timestamp) => {
@@ -120,6 +109,7 @@ function ChallanList() {
   // Filtered dataset memoized
   const filteredChallans = useMemo(() => {
     return challans.filter((challan) => {
+      // Fix: priority given to challanNo, then fallbacks
       const cNo = (
         challan.challanNo ||
         challan.challanNumber ||
