@@ -17,9 +17,9 @@ import { logEvent } from "firebase/analytics";
 
 const COMPANY_DATA = {
   STA: {
-    fullName: "StarTrack Automation",
-    shortName: "STA",
-    email: "startrackautomation@gmail.com",
+    fullName: "StarTrack Automation India Pvt. Ltd.",
+    shortName: "STAIPL",
+    email: "info@startrackautomation.in",
     contact: "+91 8101274497/8334046035",
     addressKey: "headsta",
     addressLabel: "Head STA",
@@ -27,14 +27,14 @@ const COMPANY_DATA = {
       "Raghabpur, 608No. Last Plot, GNd FL, PO Nepalgung, PS Bishnupur, Kolkata, West Bengal, 700103.\nGSTIN 19ADYFS9856M1ZI.",
   },
   STAIPL: {
-    fullName: "StarTrack Automation India Pvt Ltd",
+    fullName: "StarTrack Automation India Pvt. Ltd.",
     shortName: "STAIPL",
-    email: "startrackautomation@gmail.com",
+    email: "info@startrackautomation.in",
     contact: "+91 8101274497/8334046035",
     addressKey: "headstaipl",
-    addressLabel: "Head STAIPL",
+    addressLabel: "Head Office STAIPL",
     address:
-      "Raghabpur, 608No. Last Plot, GNd FL, PO Nepalgung, PS Bishnupur, Kolkata, West Bengal, 700103.\nGSTIN 19ABKCS2524B1ZI.",
+      "Raghabpur, 608No. Last Plot, GNd FL, PO Nepalgung, PS Bishnupur, Kolkata, West Bengal, 700103.\nGSTIN 19ABKCS2524B1ZI. \nCIN U72900WB2023PTC260080.",
   },
 };
 
@@ -58,9 +58,9 @@ const getFormattedDate = () => {
 const emptyItem = () => ({ description: "", quantity: "", remarks: "" });
 
 const buildInitialForm = () => {
-  const company = COMPANY_DATA.STA;
+  const company = COMPANY_DATA.STAIPL;
   return {
-    transportForm: "STA",
+    transportForm: company?.shortName,
     type: "Returnable",
     challanNumber: "",
     currentDate: todayISO(),
@@ -128,7 +128,7 @@ function CreateChallan() {
         const data = snap.data();
         const transportForm = COMPANY_DATA[data.transportForm]
           ? data.transportForm
-          : "STA";
+          : "STAILP";
         const company = COMPANY_DATA[transportForm];
         const senderAddress = data.senderAddress ?? company.address;
 
@@ -734,7 +734,7 @@ function CreateChallan() {
                   value={form.transportForm}
                   onChange={(e) => handleTransportChange(e.target.value)}
                 >
-                  <option value="STA">STA</option>
+                  {/* <option value="STA">STA</option> */}
                   <option value="STAIPL">STAIPL</option>
                 </select>
               </div>
