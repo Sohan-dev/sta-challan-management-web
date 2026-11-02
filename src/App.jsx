@@ -11,6 +11,8 @@ import Dashboard from "./components/Dashboard";
 import CreateChallan from "./components/CreateChallan";
 import "./App.css";
 import ChallanList from "./components/ChallanList";
+import AssetList from "./components/AssetList";
+import AssetForm from "./components/AssetForm";
 
 /** Blocks a route when nobody is logged in. */
 function RequireAuth({ isLoggedIn, children }) {
@@ -82,6 +84,30 @@ function AppRoutes() {
         element={
           <RequireAuth isLoggedIn={isLoggedIn}>
             <ChallanList />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/assets"
+        element={
+          <RequireAuth isLoggedIn={isLoggedIn}>
+            <AssetList />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/assets/new"
+        element={
+          <RequireAuth isLoggedIn={isLoggedIn}>
+            <AssetForm />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/assets/edit/:id"
+        element={
+          <RequireAuth isLoggedIn={isLoggedIn}>
+            <AssetForm />
           </RequireAuth>
         }
       />
