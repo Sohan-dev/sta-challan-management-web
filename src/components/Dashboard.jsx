@@ -199,7 +199,7 @@ function Dashboard({ username, onLogout }) {
               </div>
             </motion.div>
 
-            <motion.div
+            {/* <motion.div
               className="option-card quotation"
               variants={itemVariants}
               whileHover={{ scale: 1.02 }}
@@ -222,7 +222,7 @@ function Dashboard({ username, onLogout }) {
                   Search
                 </button>
               </div>
-            </motion.div>
+            </motion.div> */}
 
             <motion.div
               className="option-card assets"
