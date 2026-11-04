@@ -1,0 +1,492 @@
+/* ==========================================================
+   Employee Assets list page.
+   Builds on CreateChallan.css (the .cc-page variables, header,
+   cards and buttons), so the colour theme stays identical.
+   All new classes are prefixed al-.
+   ========================================================== */
+
+/* ---------- Header right side ---------- */
+.al-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.al-total-badge {
+  padding: 7px 14px;
+  font-size: 0.85rem;
+  color: var(--cc-primary-dark);
+  background: #eef0ff;
+  border: 1px solid #d9ddff;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+/* ---------- Filters ---------- */
+.al-controls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.al-search-wrap {
+  position: relative;
+  flex: 1 1 280px;
+  min-width: 0;
+}
+
+.al-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+/* .cc-page prefix: beats the shared ".cc-page input" padding */
+.cc-page .al-search-input {
+  padding-left: 38px;
+}
+
+.al-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.al-filter label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.cc-page .al-date-input {
+  width: auto;
+}
+
+/* ---------- Table ---------- */
+.al-table-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.al-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.al-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+}
+
+.al-table th {
+  background: var(--cc-primary);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-align: left;
+  padding: 12px 14px;
+  white-space: nowrap;
+}
+
+.al-table td {
+  padding: 12px 14px;
+  font-size: 0.9rem;
+  border-top: 1px solid var(--cc-border);
+  vertical-align: top;
+}
+
+.al-table tbody tr:nth-child(even) {
+  background: #fafafd;
+}
+
+.al-table tbody tr:hover {
+  background: #f3f4ff;
+}
+
+.al-col-sl {
+  width: 64px;
+  text-align: center !important;
+  font-weight: 600;
+}
+
+.al-col-name {
+  font-weight: 600;
+}
+
+.al-col-date,
+.al-col-user {
+  white-space: nowrap;
+}
+
+.al-col-items {
+  min-width: 220px;
+}
+
+.al-col-actions {
+  width: 110px;
+  text-align: center !important;
+  white-space: nowrap;
+}
+
+/* ---------- Items cell ---------- */
+.al-items-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--cc-primary-dark);
+  background: #eef0ff;
+  border: 1px solid #d9ddff;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.al-items-toggle:hover {
+  background: #dfe3ff;
+}
+
+.al-items-toggle:focus-visible {
+  outline: 2px solid var(--cc-primary);
+  outline-offset: 2px;
+}
+
+.al-chevron {
+  display: inline-block;
+  transition: transform 0.15s ease;
+}
+
+.al-chevron.open {
+  transform: rotate(180deg);
+}
+
+.al-items-preview {
+  display: block;
+  max-width: 280px;
+  margin-top: 6px;
+  font-size: 0.82rem;
+  color: var(--cc-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.al-items-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.al-items-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  padding: 8px 10px;
+  background: #f6f7fb;
+  border: 1px solid var(--cc-border);
+  border-radius: 8px;
+}
+
+.al-item-name {
+  font-weight: 600;
+  white-space: pre-line;
+  word-break: break-word;
+}
+
+.al-item-qty {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--cc-primary-dark);
+}
+
+.al-item-remarks {
+  flex-basis: 100%;
+  font-size: 0.8rem;
+  color: var(--cc-muted);
+}
+
+/* ---------- Row actions ---------- */
+.al-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.al-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    transform 0.12s ease;
+}
+
+.al-action-btn:hover {
+  transform: translateY(-1px);
+}
+
+.al-action-btn:focus-visible {
+  outline: 2px solid var(--cc-primary);
+  outline-offset: 2px;
+}
+
+.al-edit-btn {
+  color: #4f46e5;
+  background: #eef0ff;
+}
+
+.al-edit-btn:hover {
+  background: #dfe3ff;
+}
+
+.al-delete-btn {
+  color: #dc2626;
+  background: #fdeced;
+}
+
+.al-delete-btn:hover {
+  background: #fbd5d8;
+}
+
+/* ---------- Empty / loading states ---------- */
+.al-state-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 48px 20px;
+  text-align: center;
+  color: var(--cc-muted);
+}
+
+.al-state-box p {
+  margin: 0;
+}
+
+.al-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #e1e3f5;
+  border-top-color: var(--cc-primary);
+  border-radius: 50%;
+  animation: al-spin 0.8s linear infinite;
+}
+
+@keyframes al-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- Pagination ---------- */
+.al-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 14px 18px;
+  border-top: 1px solid var(--cc-border);
+}
+
+.al-pagination-info {
+  font-size: 0.85rem;
+  color: var(--cc-muted);
+}
+
+.al-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.al-page-btn,
+.al-page-num {
+  min-width: 34px;
+  height: 34px;
+  padding: 0 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: inherit;
+  color: #374151;
+  background: #fff;
+  border: 1px solid var(--cc-border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.al-page-btn:hover:not(:disabled),
+.al-page-num:hover:not(.active) {
+  background: #f0f0f8;
+  border-color: #c7caf5;
+}
+
+.al-page-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.al-page-num.active {
+  color: #fff;
+  background: var(--cc-primary);
+  border-color: var(--cc-primary);
+}
+
+/* ---------- Delete dialog ---------- */
+.al-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(17, 24, 39, 0.5);
+}
+
+.al-modal {
+  width: 100%;
+  max-width: 420px;
+  padding: 24px;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+  animation: al-modal-in 0.16s ease-out;
+}
+
+@keyframes al-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.al-modal-title {
+  margin: 0 0 10px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--cc-text);
+}
+
+.al-modal-text {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: #4b5563;
+  word-break: break-word;
+}
+
+.al-modal-error {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #9b1c23;
+  background: #fdeced;
+  border: 1px solid #f5b5b8;
+  border-radius: 8px;
+}
+
+.al-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.al-modal-btn {
+  padding: 9px 18px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  font-family: inherit;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+
+.al-modal-btn:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+.al-modal-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.al-modal-cancel {
+  color: #3c4256;
+  background: #eef0f6;
+  border-color: var(--cc-border);
+}
+
+.al-modal-confirm {
+  color: #fff;
+  background: #dc2626;
+}
+
+/* ---------- Duplicate-employee notice (inside the form) ---------- */
+.al-existing {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.al-existing .cc-error {
+  margin-top: 0;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 600px) {
+  .al-header-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .al-filter {
+    width: 100%;
+  }
+  .cc-page .al-date-input {
+    flex: 1;
+    width: 100%;
+  }
+  .al-pagination {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .al-modal-actions {
+    flex-direction: column-reverse;
+  }
+  .al-modal-btn {
+    width: 100%;
+  }
+}

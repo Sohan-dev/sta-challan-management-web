@@ -1,0 +1,21 @@
+/* Third option card on the Dashboard: Employee Assets */
+
+/* Three cards in one row on desktop, stacked on narrow screens */
+.options-container {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 900px) {
+  .options-container {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.option-card.assets .option-btn {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: #fff;
+}
+
+.option-card.assets .option-btn:hover {
+  filter: brightness(1.08);
+}

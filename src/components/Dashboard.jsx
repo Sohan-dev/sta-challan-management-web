@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import "../styles/Dashboard.css";
 import "../styles/QuotationForm.css";
+import "../styles/DashboardAssetsCard.css";
 import QuotationForm from "./QuotationForm";
 import { useNavigate } from "react-router-dom";
 
@@ -198,7 +199,7 @@ function Dashboard({ username, onLogout }) {
               </div>
             </motion.div>
 
-            <motion.div
+            {/* <motion.div
               className="option-card quotation"
               variants={itemVariants}
               whileHover={{ scale: 1.02 }}
@@ -219,6 +220,35 @@ function Dashboard({ username, onLogout }) {
                   onClick={() => setShowSearchQuotation(true)}
                 >
                   Search
+                </button>
+              </div>
+            </motion.div> */}
+
+            <motion.div
+              className="option-card assets"
+              variants={itemVariants}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <div className="option-icon">💻</div>
+              <h3>Employee Assets</h3>
+              <p>Record and track the assets each employee is using</p>
+              <div className="button-group">
+                <button
+                  className="option-btn"
+                  onClick={() =>
+                    navigate("/assets/new", { state: { username: username } })
+                  }
+                >
+                  New
+                </button>
+                <button
+                  className="option-btn"
+                  onClick={() =>
+                    navigate("/assets", { state: { username: username } })
+                  }
+                >
+                  See All Assets
                 </button>
               </div>
             </motion.div>
@@ -250,7 +280,6 @@ function Dashboard({ username, onLogout }) {
                       <th>Sender Name</th>
                       <th>Receiver Name</th>
                       <th>Created Date &amp; Time</th>
-                      <th style={{ textAlign: "center" }}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -283,41 +312,11 @@ function Dashboard({ username, onLogout }) {
                               ? challan.createdAt.toDate().toLocaleString()
                               : challan.challanDate || "N/A"}
                           </td>
-                          <td style={{ textAlign: "center" }}>
-                            <button
-                              title="Edit Challan"
-                              style={{
-                                background: "#f3f4f6",
-                                border: "1px solid #e5e7eb",
-                                borderRadius: "6px",
-                                padding: "6px 10px",
-                                cursor: "pointer",
-                                fontSize: "14px",
-                                display: "inline-flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                transition: "all 0.2s ease-in-out",
-                              }}
-                              onMouseOver={(e) => {
-                                e.currentTarget.style.backgroundColor =
-                                  "#e0e7ff";
-                                e.currentTarget.style.borderColor = "#c7d2fe";
-                              }}
-                              onMouseOut={(e) => {
-                                e.currentTarget.style.backgroundColor =
-                                  "#f3f4f6";
-                                e.currentTarget.style.borderColor = "#e5e7eb";
-                              }}
-                              onClick={() => handleEditChallanFromList(challan)}
-                            >
-                              ✏️
-                            </button>
-                          </td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan="7" className="no-records">
+                        <td colSpan="6" className="no-records">
                           No recent challans found.
                         </td>
                       </tr>
@@ -333,6 +332,32 @@ function Dashboard({ username, onLogout }) {
       {/* New Quotation Modal */}
       {showNewQuotation && (
         <QuotationForm onClose={() => setShowNewQuotation(false)} />
+      )}
+
+      {/* Search Quotation Modal */}
+      {showSearchQuotation && (
+        <div
+          className="modal-overlay"
+          onClick={() => setShowSearchQuotation(false)}
+        >
+          <div
+            className="modal-content modal-large"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header">
+              <h2>Search Quotation</h2>
+              <button
+                className="close-btn"
+                onClick={() => setShowSearchQuotation(false)}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="modal-body">
+              <p>Search quotation feature coming soon...</p>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
